@@ -89,6 +89,12 @@ func (w *Watcher) init() error {
 func (w *Watcher) Start(cancel context.CancelFunc) error {
 	w.cancel = cancel
 	w.again = true
+	args := filters.NewArgs()
+	// See https://docs.docker.com/engine/reference/commandline/events/#extended-description
+	args.Add(EVENT, START)
+	args.Add(EVENT, STOP)
+	args.Add(EVENT, DIE)
+
 	for w.again {
 		err := PingDocker(w.client)
 		if err != nil {
@@ -101,11 +107,6 @@ func (w *Watcher) Start(cancel context.CancelFunc) error {
 		}
 		var ctx context.Context
 		ctx, w.cancel = context.WithCancel(context.Background())
-		args := filters.NewArgs()
-		// See https://docs.docker.com/engine/reference/commandline/events/#extended-description
-		args.Add(EVENT, START)
-		args.Add(EVENT, STOP)
-		args.Add(EVENT, DIE)
 
 		messages, errors := w.client.Events(ctx, types.EventsOptions{
 			Filters: args,
