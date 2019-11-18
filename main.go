@@ -18,8 +18,8 @@ func main() {
 		panic(err)
 	}
 	w := visitor.New(c)
-	w.WatchFor(func(container *types.ContainerJSON) {
-		fmt.Println(container)
+	w.WatchFor(func(action string, container *types.ContainerJSON) {
+		fmt.Println("🐳 ", action, container)
 	})
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)

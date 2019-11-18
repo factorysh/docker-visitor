@@ -22,7 +22,7 @@ const (
 )
 
 type query struct {
-	visitor func(*types.ContainerJSON)
+	visitor func(string, *types.ContainerJSON)
 	labels  []string
 }
 
@@ -42,18 +42,23 @@ func New(client *client.Client) *Watcher {
 	}
 }
 
-func (w *Watcher) WatchFor(visitor func(container *types.ContainerJSON), labels ...string) {
+func (w *Watcher) WatchFor(visitor func(action string, container *types.ContainerJSON), labels ...string) {
 	w.queries = append(w.queries, &query{
 		visitor: visitor,
 		labels:  labels,
 	})
 }
 
-func (w *Watcher) watch(container *types.ContainerJSON) {
+func (w *Watcher) trigger(action string, container *types.ContainerJSON) {
+	log.WithField("action", action).WithField("id", container.ID).Debug("trigger")
 	for _, query := range w.queries {
+		if len(query.labels) == 0 {
+			go query.visitor(action, container)
+			return
+		}
 		for _, label := range query.labels {
 			if _, ok := container.Config.Labels[label]; ok {
-				go query.visitor(container)
+				go query.visitor(action, container)
 			}
 		}
 	}
@@ -72,7 +77,7 @@ func (w *Watcher) init() error {
 		}
 		log.WithField("id", container.ID).WithField("container", containerJSON).Debug("Old container")
 		w.containers[container.ID] = &containerJSON
-		w.watch(&containerJSON)
+		w.trigger(START, &containerJSON)
 	}
 	return nil
 }
@@ -112,6 +117,7 @@ func (w *Watcher) Start(cancel context.CancelFunc) error {
 					"action": msg.Action,
 				}).Debug("Docker message")
 				if msg.Action == STOP || msg.Action == DIE {
+					w.trigger(msg.Action, w.containers[msg.ID])
 					delete(w.containers, msg.ID)
 				}
 				if msg.Action == START {
@@ -121,6 +127,7 @@ func (w *Watcher) Start(cancel context.CancelFunc) error {
 					} else {
 						w.containers[container.ID] = &container
 					}
+					w.trigger(msg.Action, &container)
 				}
 
 			case err := <-errors:
