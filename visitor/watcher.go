@@ -13,12 +13,11 @@ import (
 )
 
 const (
-	DOCKER_TRIES = 12
-	START        = "start" // Container action
-	STOP         = "stop"  // Container action
-	DIE          = "die"   // Container action
-	CONTAINER    = "container"
-	EVENT        = "event"
+	START     = "start" // Container action
+	STOP      = "stop"  // Container action
+	DIE       = "die"   // Container action
+	CONTAINER = "container"
+	EVENT     = "event"
 )
 
 type query struct {
