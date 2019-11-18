@@ -64,11 +64,13 @@ func (w *Watcher) init() error {
 	if err != nil {
 		return err
 	}
+	log.WithField("n", len(containers)).Info("Initial state")
 	for _, container := range containers {
 		containerJSON, err := w.client.ContainerInspect(context.Background(), container.ID)
 		if err != nil {
 			return err
 		}
+		log.WithField("id", container.ID).WithField("container", containerJSON).Debug("Old container")
 		w.containers[container.ID] = &containerJSON
 		w.watch(&containerJSON)
 	}
@@ -83,6 +85,7 @@ func (w *Watcher) Start(cancel context.CancelFunc) error {
 		if err != nil {
 			return err
 		}
+		log.Info("Docker ping")
 		err = w.init()
 		if err != nil {
 			return err

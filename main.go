@@ -7,10 +7,12 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/factorysh/docker-visitor/visitor"
+	log "github.com/sirupsen/logrus"
 )
 
 // It's a debug tool, not a real main
 func main() {
+	log.SetLevel(log.DebugLevel)
 	c, err := client.NewEnvClient()
 	if err != nil {
 		panic(err)
