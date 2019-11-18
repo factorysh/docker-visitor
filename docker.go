@@ -2,10 +2,13 @@ package docker
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"
 )
@@ -101,7 +104,50 @@ func (w *Watcher) Start(cancel context.CancelFunc) error {
 		if err != nil {
 			return err
 		}
+		var ctx context.Context
+		ctx, w.cancel = context.WithCancel(context.Background())
+		args := filters.NewArgs()
+		// See https://docs.docker.com/engine/reference/commandline/events/#extended-description
+		args.Add(EVENT, START)
+		args.Add(EVENT, STOP)
+		args.Add(EVENT, DIE)
 
+		messages, errors := w.client.Events(ctx, types.EventsOptions{
+			Filters: args,
+		})
+		log.Info("Listening Docker messages")
+		again := true
+		for again {
+			select {
+			case msg := <-messages:
+				raw, _ := json.Marshal(msg)
+				log.WithFields(log.Fields{
+					"body":   string(raw),
+					"action": msg.Action,
+				}).Debug("Docker message")
+				if msg.Action == STOP || msg.Action == DIE {
+					delete(w.containers, msg.ID)
+				}
+				if msg.Action == START {
+					container, err := w.client.ContainerInspect(context.Background(), msg.ID)
+					if err != nil {
+						log.Error(err)
+					} else {
+						w.containers[container.ID] = &container
+					}
+				}
+
+			case err := <-errors:
+				log.WithError(err).Error("Docker event error")
+				switch err {
+				case io.EOF: // Docker cut the stream
+					again = false
+				case nil: // FIXME what happened? lets reboot
+					again = false
+				}
+				time.Sleep(10 * time.Second) // Don't flood log
+			}
+		}
 	}
 	return nil
 }
