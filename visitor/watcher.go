@@ -33,6 +33,7 @@ type Watcher struct {
 	again      bool
 }
 
+// New Watcher, from a Docker client
 func New(client *client.Client) *Watcher {
 	return &Watcher{
 		client:     client,
@@ -41,6 +42,7 @@ func New(client *client.Client) *Watcher {
 	}
 }
 
+// WatchFor visitor function and label names
 func (w *Watcher) WatchFor(visitor func(action string, container *types.ContainerJSON), labels ...string) {
 	w.queries = append(w.queries, &query{
 		visitor: visitor,
@@ -48,6 +50,7 @@ func (w *Watcher) WatchFor(visitor func(action string, container *types.Containe
 	})
 }
 
+// loop over visitors, filter event with their labels, run asynchronously visitor
 func (w *Watcher) trigger(action string, container *types.ContainerJSON) {
 	log.WithField("action", action).WithField("id", container.ID).Debug("trigger")
 	for _, query := range w.queries {
@@ -63,6 +66,7 @@ func (w *Watcher) trigger(action string, container *types.ContainerJSON) {
 	}
 }
 
+// Look for already here containers
 func (w *Watcher) init() error {
 	containers, err := w.client.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
@@ -81,6 +85,7 @@ func (w *Watcher) init() error {
 	return nil
 }
 
+// Start watching Docker events
 func (w *Watcher) Start(cancel context.CancelFunc) error {
 	w.cancel = cancel
 	w.again = true
