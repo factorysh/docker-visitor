@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"context"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/factorysh/docker-visitor/visitor"
@@ -23,7 +24,8 @@ func main() {
 	})
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
-	err = w.Start(cancel)
+	err = w.Start(ctx)
+	defer cancel()
 	if err != nil {
 		panic(err)
 	}
