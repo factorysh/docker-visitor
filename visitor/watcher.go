@@ -86,8 +86,7 @@ func (w *Watcher) init() error {
 }
 
 // Start watching Docker events
-func (w *Watcher) Start(cancel context.CancelFunc) error {
-	w.cancel = cancel
+func (w *Watcher) Start(ctx context.Context) error {
 	w.again = true
 	args := filters.NewArgs()
 	// See https://docs.docker.com/engine/reference/commandline/events/#extended-description
@@ -105,16 +104,17 @@ func (w *Watcher) Start(cancel context.CancelFunc) error {
 		if err != nil {
 			return err
 		}
-		var ctx context.Context
-		ctx, w.cancel = context.WithCancel(context.Background())
-
-		messages, errors := w.client.Events(ctx, types.EventsOptions{
+		ctx2, cancel := context.WithCancel(context.Background())
+		messages, errors := w.client.Events(ctx2, types.EventsOptions{
 			Filters: args,
 		})
+		defer cancel()
 		log.Info("Listening Docker messages")
 		again := true
 		for again {
 			select {
+			case <-ctx.Done():
+				return nil
 			case msg := <-messages:
 				raw, _ := json.Marshal(msg)
 				log.WithFields(log.Fields{
