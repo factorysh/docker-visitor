@@ -16,6 +16,7 @@ const (
 	START     = "start" // Container action
 	STOP      = "stop"  // Container action
 	DIE       = "die"   // Container action
+	DESTROY   = "destroy"
 	CONTAINER = "container"
 	EVENT     = "event"
 )
@@ -93,6 +94,7 @@ func (w *Watcher) Start(ctx context.Context) error {
 	args.Add(EVENT, START)
 	args.Add(EVENT, STOP)
 	args.Add(EVENT, DIE)
+	args.Add(EVENT, DESTROY)
 
 	for w.again {
 		err := PingDocker(w.client)
@@ -121,10 +123,6 @@ func (w *Watcher) Start(ctx context.Context) error {
 					"body":   string(raw),
 					"action": msg.Action,
 				}).Debug("Docker message")
-				if msg.Action == STOP || msg.Action == DIE {
-					w.trigger(msg.Action, w.containers[msg.ID])
-					delete(w.containers, msg.ID)
-				}
 				if msg.Action == START {
 					container, err := w.client.ContainerInspect(context.Background(), msg.ID)
 					if err != nil {
@@ -133,6 +131,16 @@ func (w *Watcher) Start(ctx context.Context) error {
 						w.containers[container.ID] = &container
 					}
 					w.trigger(msg.Action, &container)
+					continue
+				}
+				c, ok := w.containers[msg.ID]
+				if ok {
+					w.trigger(msg.Action, c)
+				} else {
+					log.Error(msg.Action, msg.ID)
+				}
+				if msg.Action == DESTROY {
+					delete(w.containers, msg.ID)
 				}
 
 			case err := <-errors:
