@@ -69,7 +69,9 @@ func (w *Watcher) trigger(action string, container *types.ContainerJSON) {
 
 // Look for already here containers
 func (w *Watcher) init() error {
-	containers, err := w.client.ContainerList(context.Background(), types.ContainerListOptions{})
+	containers, err := w.client.ContainerList(context.Background(), types.ContainerListOptions{
+		All: true,
+	})
 	if err != nil {
 		return err
 	}
