@@ -23,6 +23,11 @@ func main() {
 		panic(err)
 	}
 	w := visitor.New(c)
+	w.VisitCurrentCointainer(func(container *types.ContainerJSON) error {
+		fmt.Println("🐡 ", container.ID)
+		spew.Dump(container.State)
+		return nil
+	})
 	w.WatchFor(func(action string, container *types.ContainerJSON) {
 		fmt.Println("🐳 ", action)
 		spew.Dump(container.State)

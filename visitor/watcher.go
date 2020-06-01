@@ -30,6 +30,7 @@ type Watcher struct {
 	client     *client.Client
 	queries    []*query
 	containers map[string]*types.ContainerJSON
+	visitors   []func(*types.ContainerJSON) error
 	cancel     context.CancelFunc
 	again      bool
 }
@@ -39,6 +40,7 @@ func New(client *client.Client) *Watcher {
 	return &Watcher{
 		client:     client,
 		queries:    make([]*query, 0),
+		visitors:   make([]func(*types.ContainerJSON) error, 0),
 		containers: make(map[string]*types.ContainerJSON),
 	}
 }
@@ -49,6 +51,11 @@ func (w *Watcher) WatchFor(visitor func(action string, container *types.Containe
 		visitor: visitor,
 		labels:  labels,
 	})
+}
+
+// VisitCurrentCointainer visit already present containers
+func (w *Watcher) VisitCurrentCointainer(visitor func(container *types.ContainerJSON) error) {
+	w.visitors = append(w.visitors, visitor)
 }
 
 // loop over visitors, filter event with their labels, run asynchronously visitor
@@ -80,6 +87,12 @@ func (w *Watcher) init() error {
 		containerJSON, err := w.client.ContainerInspect(context.Background(), container.ID)
 		if err != nil {
 			return err
+		}
+		for _, v := range w.visitors {
+			err = v(&containerJSON)
+			if err != nil {
+				return err
+			}
 		}
 		log.WithField("id", container.ID).WithField("container", containerJSON).Debug("Old container")
 		w.containers[container.ID] = &containerJSON
