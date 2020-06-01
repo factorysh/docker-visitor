@@ -83,7 +83,6 @@ func (w *Watcher) init() error {
 		}
 		log.WithField("id", container.ID).WithField("container", containerJSON).Debug("Old container")
 		w.containers[container.ID] = &containerJSON
-		w.trigger(START, &containerJSON)
 	}
 	return nil
 }
