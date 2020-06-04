@@ -171,3 +171,7 @@ func (w *Watcher) Start(ctx context.Context) error {
 	}
 	return nil
 }
+
+func (w *Watcher) Container(id string) *types.ContainerJSON {
+	return w.containers[id]
+}
