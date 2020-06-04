@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -33,6 +34,7 @@ type Watcher struct {
 	visitors   []func(*types.ContainerJSON) error
 	cancel     context.CancelFunc
 	again      bool
+	lock       sync.RWMutex
 }
 
 // New Watcher, from a Docker client
@@ -95,7 +97,9 @@ func (w *Watcher) init() error {
 			}
 		}
 		log.WithField("id", container.ID).WithField("container", containerJSON).Debug("Old container")
+		w.lock.Lock()
 		w.containers[container.ID] = &containerJSON
+		w.lock.Unlock()
 	}
 	return nil
 }
@@ -142,19 +146,25 @@ func (w *Watcher) Start(ctx context.Context) error {
 					if err != nil {
 						log.Error(err)
 					} else {
+						w.lock.Lock()
 						w.containers[container.ID] = &container
+						w.lock.Unlock()
 					}
 					w.trigger(msg.Action, &container)
 					continue
 				}
+				w.lock.RLock()
 				c, ok := w.containers[msg.ID]
 				if ok {
 					w.trigger(msg.Action, c)
 				} else {
 					log.Error(msg.Action, msg.ID)
 				}
+				w.lock.RUnlock()
 				if msg.Action == DESTROY {
+					w.lock.Lock()
 					delete(w.containers, msg.ID)
+					w.lock.Unlock()
 				}
 
 			case err := <-errors:
@@ -173,5 +183,7 @@ func (w *Watcher) Start(ctx context.Context) error {
 }
 
 func (w *Watcher) Container(id string) *types.ContainerJSON {
+	w.lock.RLock()
+	defer w.lock.RUnlock()
 	return w.containers[id]
 }
