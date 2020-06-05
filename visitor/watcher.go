@@ -187,3 +187,19 @@ func (w *Watcher) Container(id string) *types.ContainerJSON {
 	defer w.lock.RUnlock()
 	return w.containers[id]
 }
+
+func (w *Watcher) Find(visitor func(*types.ContainerJSON) (bool, error)) ([]*types.ContainerJSON, error) {
+	r := make([]*types.ContainerJSON, 0)
+	w.lock.Lock()
+	defer w.lock.Unlock()
+	for _, container := range w.containers {
+		ok, err := visitor(container)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			r = append(r, container)
+		}
+	}
+	return r, nil
+}
