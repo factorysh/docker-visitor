@@ -35,16 +35,19 @@ type Watcher struct {
 	cancel     context.CancelFunc
 	again      bool
 	lock       sync.RWMutex
+	ready      sync.WaitGroup
 }
 
 // New Watcher, from a Docker client
 func New(client *client.Client) *Watcher {
-	return &Watcher{
+	w := &Watcher{
 		client:     client,
 		queries:    make([]*query, 0),
 		visitors:   make([]func(*types.ContainerJSON) error, 0),
 		containers: make(map[string]*types.ContainerJSON),
 	}
+	w.ready.Add(1) // see Watcher.Ready()
+	return w
 }
 
 // WatchFor visitor function and label names
@@ -101,7 +104,13 @@ func (w *Watcher) init() error {
 		w.containers[container.ID] = &containerJSON
 		w.lock.Unlock()
 	}
+	w.ready.Done()
 	return nil
+}
+
+// Ready when already here containers are known
+func (w *Watcher) Ready() {
+	w.ready.Wait()
 }
 
 // Start watching Docker events
