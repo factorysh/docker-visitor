@@ -32,7 +32,6 @@ type Watcher struct {
 	queries    []*query
 	containers map[string]*types.ContainerJSON
 	visitors   []func(*types.ContainerJSON) error
-	cancel     context.CancelFunc
 	again      bool
 	lock       sync.RWMutex
 	ready      sync.WaitGroup
