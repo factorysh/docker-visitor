@@ -68,7 +68,7 @@ func (w *Watcher) trigger(action string, container *types.ContainerJSON) {
 	for _, query := range w.queries {
 		if len(query.labels) == 0 {
 			go query.visitor(action, container)
-			return
+			continue
 		}
 		for _, label := range query.labels {
 			if _, ok := container.Config.Labels[label]; ok {
