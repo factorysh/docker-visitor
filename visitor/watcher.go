@@ -186,6 +186,7 @@ func (w *Watcher) Start(ctx context.Context) error {
 				time.Sleep(10 * time.Second) // Don't flood log
 			}
 		}
+		w.ready.Add(1)
 	}
 	return nil
 }
