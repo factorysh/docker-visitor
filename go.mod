@@ -12,6 +12,6 @@ require (
 	github.com/onrik/logrus v0.9.0
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
-	github.com/tidwall/gjson v1.8.1 // indirect
-	golang.org/x/net v0.0.0-20210726213435-c6fcb2dbf985 // indirect
+	github.com/tidwall/gjson v1.11.0 // indirect
+	golang.org/x/net v0.0.0-20211101193420-4a448f8816b3 // indirect
 )
